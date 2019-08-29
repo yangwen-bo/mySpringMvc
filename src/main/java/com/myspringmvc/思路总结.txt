@@ -1,0 +1,60 @@
+首先需要一个前置控制器 DispatcherServlet，作为整个流程的核心，由它去调用其他组件，共同完成业务。
+主要组件有两个：
+一是 Controller，调用其业务方法 Method，执行业务逻辑。
+二是 ViewResolver 视图解析器，将业务方法的返回值解析为物理视图 + 模型数据，返回客户端。
+
+
+按照这个思路来写框架。
+
+
+根据 Spring IoC 容器的特性，需要将参与业务的对象全部创建并保存到容器中，供流程调用。首先需要创建 Controller 对象，HTTP 请求是通过注解找到对应的 Controller 对象，因此我们需要将所有的 Controller 与其注解建立关联，很显然，使用 key-value 结构的 Map 集合来保存最合适不过了，这样就模拟了 IoC 容器。
+Controller 的 Method 也是通过注解与 HTTP 请求映射的，同样的，我们需要将所有的 Method 与其注解建立关联， HTTP 直接通过注解的值找到对应的 Method，这里也用 Map 集合保存。
+实例化视图解析器。
+初始化工作完成，接下来处理 HTTP 请求，业务流程如下：
+（1）DispatcherServlet 接收请求，通过映射从 IoC 容器中获取对应的 Controller 对象；
+（2）根据映射获取 Controller 对象对应的 Method；
+（3）调用 Method，获取返回值；
+（4）将返回值传给视图解析器，返回物理视图；
+（5）完成页面跳转。
+
+开始写代码，创建下面这四个类：
+（1）MyDispatcherServlet，模拟 DispatcherServlet；
+（2）MyController，模拟 Controller 注解；
+（3）MyRequestMapping，模拟 RequestMapping 注解；
+（4）MyViewResolver，模拟 ViewResolver 视图解析器。
+
+首先创建 MyDispatcherServlet，init 方法完成初始化：
+（1）将 Controller 与注解进行关联，保存到 iocContainer 中，哪些 Controller 是需要添加到 iocContainer 中的？
+必须同时满足两点：
+springmvc.xml 中配置扫描的类
+类定义处添加了注解
+注意这两点必须同时满足。
+
+代码思路：
+解析 springmvc.xml
+获取 component-scan 标签配置包下的所有类
+判断这些类若添加了 @MyController 注解，则创建实例对象，并且保存到 iocContainer
+@MyRequestMapping 的值为键，Controller 对象为值
+
+
+（2）将 Controller 中的 Method 与注解进行关联，保存到 handlerMapping 中。
+代码思路：
+遍历 iocContainer 中的 Controller 实例对象
+遍历每一个 Controller 对象的 Method
+判断 Method 是否添加了 @MyRequestMapping 注解，若添加，则进行映射并保存
+保存到 handlerMapping 中，@MyRequestMapping 的值为键，Method 为值
+
+
+（3）实例化 ViewResolver。
+代码思路：
+解析 springmvc.xml
+根据 bean 标签的 class 属性获取需要实例化的 MyViewResolver
+通过反射创建实例化对象，同时获取 prefix 和 suffix 属性，以及 setter 方法
+通过反射调用 setter 方法给属性赋值，完成 MyViewResolver 的实例化
+
+doPost 方法处理 HTTP 请求的流程：
+（1）解析 HTTP，分别得到 Controller 和 Method 对应的 uri；
+（2）通过 uri 分别在 iocContainer 和 handlerMapping 中获取对应的 Controller 及 Method；
+（3）通过反射调用 Method，执行业务方法，获取结果；
+（4）将结果传给 MyViewResolver 进行解析，返回真正的物理视图（JSP 页面）；
+（5）完成 JSP 页面跳转。

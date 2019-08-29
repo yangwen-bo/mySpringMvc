@@ -8,7 +8,7 @@
   <!-- 前端控制器，拦截所有请求  -->
   <servlet>
     <servlet-name>mvc-dispatcher</servlet-name>
-    <servlet-class>com.southwind.servlet.MyDispatcherServlet</servlet-class>
+    <servlet-class>com.myspringmvc.MyDispatcherServlet</servlet-class>
     <init-param>
       <param-name>contextConfigLocation</param-name>
       <param-value>springmvc.xml</param-value>
